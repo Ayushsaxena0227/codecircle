@@ -1,18 +1,21 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Navbar from "./components/Navbar";
+import Signup from "./Pages/Auth/Signup";
+import Login from "./Pages/Auth/Login";
 import React from "react";
+import Profile from "./Pages/User";
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<div className="p-4 text-xl">Home Page</div>} />
-      <Route
-        path="/problems"
-        element={<div className="p-4 text-xl">Problems Page</div>}
-      />
-      <Route
-        path="/profile"
-        element={<div className="p-4 text-xl">Profile Page</div>}
-      />
-    </Routes>
+    <>
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<div className="p-4">Home</div>} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/profile" element={<Profile />} />
+      </Routes>
+    </>
   );
 }
+
 export default App;
