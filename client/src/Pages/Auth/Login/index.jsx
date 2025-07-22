@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { auth } from "../../../Firebase/firebase";
-import React from "react";
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
 } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import { createUserInDB } from "../../../utils/createUserInDb";
+import React from "react";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -17,7 +18,9 @@ export default function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const userCred = await signInWithEmailAndPassword(auth, email, password);
+      const token = await userCred.user.getIdToken();
+      await createUserInDB(token);
       navigate("/");
     } catch (err) {
       alert(err.message);
@@ -26,7 +29,9 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      const userCred = await signInWithPopup(auth, googleProvider);
+      const token = await userCred.user.getIdToken();
+      await createUserInDB(token);
       navigate("/");
     } catch (err) {
       alert(err.message);

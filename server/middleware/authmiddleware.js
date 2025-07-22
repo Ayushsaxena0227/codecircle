@@ -1,15 +1,21 @@
-const admin = require("../firebase/config");
+const { admin } = require("../firebase/config");
 
 const verifyToken = async (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1]; // Bearer <token>
-  if (!token) return res.status(401).json({ error: "No token provided" });
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Unauthorized: No token" });
+  }
+
+  const token = authHeader.split(" ")[1];
 
   try {
     const decodedToken = await admin.auth().verifyIdToken(token);
-    req.user = decodedToken; // { uid, email, name, ... }
+    req.user = decodedToken;
     next();
   } catch (error) {
-    res.status(401).json({ error: "Invalid token" });
+    console.error("Token verification failed:", error);
+    return res.status(401).json({ message: "Unauthorized: Invalid token" });
   }
 };
 

@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { auth } from "../../../Firebase/firebase";
-import React from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useNavigate } from "react-router-dom";
+import { createUserInDB } from "../../../utils/createUserInDb";
+import React from "react";
 
 export default function Signup() {
   const [email, setEmail] = useState("");
@@ -12,7 +13,14 @@ export default function Signup() {
   const handleSignup = async (e) => {
     e.preventDefault();
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
+      const userCred = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const token = await userCred.user.getIdToken();
+      console.log(token);
+      await createUserInDB(token);
       navigate("/");
     } catch (err) {
       alert(err.message);

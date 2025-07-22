@@ -1,13 +1,8 @@
 const express = require("express");
 const router = express.Router();
-const verifyToken = require("../middleware/authmiddleware");
+const { createUser } = require("../controller/userController");
+const verifyToken = require("../middleware/authMiddleware");
 
-router.get("/profile", verifyToken, (req, res) => {
-  res.json({
-    message: "User authenticated",
-    uid: req.user.uid,
-    email: req.user.email,
-  });
-});
+router.post("/create", verifyToken, createUser);
 
 module.exports = router;

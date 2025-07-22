@@ -3,11 +3,12 @@ import { auth } from "../../Firebase/firebase";
 
 const Profile = () => {
   const [data, setData] = useState(null);
+  const BASE_URL = import.meta.env.VITE_URL;
 
   useEffect(() => {
     const fetchProfile = async () => {
       const token = await auth.currentUser?.getIdToken();
-      const res = await fetch("http://localhost:5000/api/user/profile", {
+      const res = await fetch(`${BASE_URL}/api/user/profile`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
