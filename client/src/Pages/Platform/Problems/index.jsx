@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
+import React from "react";
 import { auth } from "../../../Firebase/firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import MonacoEditor from "react-monaco-editor";
-import React from "react";
+import ProblemEditor from "../components/ProblemEditor";
+import { boilerplates } from "../Constants/languageBoilerplate";
 
 const BASE_URL = import.meta.env.VITE_URL;
 
 export default function ProblemList() {
   const [problems, setProblems] = useState([]);
   const [selectedProblem, setSelectedProblem] = useState(null);
-  const [code, setCode] = useState("// Write your code here");
+  const [language, setLanguage] = useState("javascript");
+  const [code, setCode] = useState(boilerplates["javascript"]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -30,13 +33,9 @@ export default function ProblemList() {
           }
 
           const data = await res.json();
-          console.log(data);
           setProblems(data);
-          if (data.length > 0) {
-            setSelectedProblem(data[0]);
-          }
+          if (data.length > 0) setSelectedProblem(data[0]);
         } catch (err) {
-          console.error("Fetch Error:", err);
           setError("Failed to load problems. Please try again.");
         }
       } else {
@@ -51,12 +50,17 @@ export default function ProblemList() {
 
   const handleRunCode = () => {
     console.log("Running code:", code);
-    alert("Code run placeholder - implement backend execution!");
+    alert("Code run placeholder - will connect to Judge0 in next phase!");
   };
 
   const handleSubmit = () => {
     console.log("Submitting code:", code);
-    alert("Submission placeholder - check against test cases!");
+    alert("Submission placeholder - will validate + store in next phase!");
+  };
+  const handleLanguageChange = (e) => {
+    const selectedLang = e.target.value;
+    setLanguage(selectedLang);
+    setCode(boilerplates[selectedLang]); // load new boilerplate
   };
 
   if (loading) {
@@ -68,9 +72,9 @@ export default function ProblemList() {
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Left Side: Problem List */}
-      <div className="w-1/3 bg-gray-100 border-r border-gray-300 overflow-y-auto p-4">
+    <div className="flex h-screen">
+      {/* Left Side: Problems List */}
+      <div className="w-1/4 bg-gray-100 border-r border-gray-300 overflow-y-auto p-4">
         <h1 className="text-2xl font-bold mb-4">All Problems</h1>
         <ul className="space-y-2">
           {problems.map((prob) => (
@@ -91,12 +95,12 @@ export default function ProblemList() {
         </ul>
       </div>
 
-      {/* Right Side: Problem Details + Code Editor */}
-      <div className="w-2/3 flex flex-col overflow-hidden">
+      {/* Right Side: Problem Details + Editor */}
+      <div className="w-3/4 flex flex-col h-screen">
         {selectedProblem ? (
           <>
-            {/* Problem Details */}
-            <div className="p-4 border-b border-gray-300 overflow-y-auto">
+            {/* Problem Details - Fixed height */}
+            <div className="h-1/2 p-4 border-b border-gray-300 overflow-y-auto bg-white">
               <h1 className="text-2xl font-bold mb-2">
                 {selectedProblem.title}
               </h1>
@@ -120,25 +124,30 @@ export default function ProblemList() {
               ))}
             </div>
 
-            {/* Monaco Code Editor */}
-            <div className="flex-1">
-              <MonacoEditor
-                width="100%"
-                height="100%"
-                language="javascript" // Change to other languages as needed
-                theme="vs-dark" // Dark theme like LeetCode
-                value={code}
-                onChange={(newValue) => setCode(newValue)}
-                options={{
-                  minimap: { enabled: false },
-                  scrollBeyondLastLine: false,
-                  fontSize: 14,
-                }}
-              />
+            {/* Language Selector + Code Editor - Fixed height */}
+            <div className="h-1/2 flex flex-col bg-black">
+              <div className="p-2 flex justify-end bg-gray-800">
+                <select
+                  value={language}
+                  onChange={handleLanguageChange}
+                  className="border px-2 py-1 rounded"
+                >
+                  <option value="javascript">JavaScript</option>
+                  <option value="python">Python</option>
+                  <option value="cpp">C++</option>
+                </select>
+              </div>
+              <div className="flex-1">
+                <ProblemEditor
+                  code={code}
+                  setCode={setCode}
+                  language={language}
+                />
+              </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="p-4 bg-gray-200 flex justify-end space-x-4">
+            {/* Buttons - Fixed at bottom */}
+            <div className="p-4 bg-gray-200 flex justify-end space-x-4 border-t">
               <button
                 onClick={handleRunCode}
                 className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"

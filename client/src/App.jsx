@@ -5,7 +5,7 @@ import Login from "./Pages/Auth/Login";
 import React from "react";
 import Profile from "./Pages/User";
 import ProtectedRoute from "./components/ProtectedRoutes";
-import ProblemList from "./Pages/Platform/Problems/ProblemList";
+import ProblemList from "./Pages/Platform/Problems";
 function App() {
   return (
     <>
