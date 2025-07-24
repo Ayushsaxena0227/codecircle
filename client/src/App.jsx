@@ -5,6 +5,7 @@ import Login from "./Pages/Auth/Login";
 import React from "react";
 import Profile from "./Pages/User";
 import ProtectedRoute from "./components/ProtectedRoutes";
+import ProblemList from "./Pages/Platform/Problems/ProblemList";
 function App() {
   return (
     <>
@@ -13,6 +14,14 @@ function App() {
         <Route path="/" element={<div className="p-4">Home</div>} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
+        <Route
+          path="/api/problem"
+          element={
+            <ProtectedRoute>
+              <ProblemList />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/profile"
           element={
