@@ -11,7 +11,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get("/", (req, res) => res.send("LeetCode API is running"));
+app.get("/", (req, res) => res.send(" API is running"));
 app.use("/api/user", userRoutes);
 app.use("/api/problems", problemRoutes);
 app.use("/api/execute", executeRoute);
