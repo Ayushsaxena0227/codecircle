@@ -419,6 +419,26 @@ try {
 
   return userCode;
 };
+exports.getSubmissions = async (req, res) => {
+  try {
+    const userId = req.user.uid;
+    const problemId = req.params.problemId;
+    const col = db.collection("users").doc(userId).collection("submissions");
+
+    const snap = problemId
+      ? await col
+          .where("problemId", "==", problemId)
+          .orderBy("timestamp", "desc")
+          .get()
+      : await col.orderBy("timestamp", "desc").get(); // all problems
+
+    const submissions = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    return res.json({ submissions });
+  } catch (err) {
+    console.error("Get submissions error:", err.message);
+    return res.status(500).json({ error: "Failed to fetch submissions" });
+  }
+};
 
 exports.saveSubmission = async (req, res) => {
   const { problemId, code, language } = req.body;

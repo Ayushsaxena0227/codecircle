@@ -17,6 +17,31 @@ export default function ProblemSidebar({ problems, selectedId, onSelect }) {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
+      <div className="p-4 border-t border-gray-200 bg-gray-50">
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span>
+            Easy:{" "}
+            {
+              problems.filter((p) => p.difficulty?.toLowerCase() === "easy")
+                .length
+            }
+          </span>
+          <span>
+            Medium:{" "}
+            {
+              problems.filter((p) => p.difficulty?.toLowerCase() === "medium")
+                .length
+            }
+          </span>
+          <span>
+            Hard:{" "}
+            {
+              problems.filter((p) => p.difficulty?.toLowerCase() === "hard")
+                .length
+            }
+          </span>
+        </div>
+      </div>
       <div className="p-4 border-b border-gray-200 bg-gray-50">
         <h1 className="text-lg font-semibold text-gray-900">Problems</h1>
         <p className="text-sm text-gray-500 mt-1">{problems.length} problems</p>
@@ -92,31 +117,6 @@ export default function ProblemSidebar({ problems, selectedId, onSelect }) {
       </div>
 
       {/* Footer */}
-      <div className="p-4 border-t border-gray-200 bg-gray-50">
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>
-            Easy:{" "}
-            {
-              problems.filter((p) => p.difficulty?.toLowerCase() === "easy")
-                .length
-            }
-          </span>
-          <span>
-            Medium:{" "}
-            {
-              problems.filter((p) => p.difficulty?.toLowerCase() === "medium")
-                .length
-            }
-          </span>
-          <span>
-            Hard:{" "}
-            {
-              problems.filter((p) => p.difficulty?.toLowerCase() === "hard")
-                .length
-            }
-          </span>
-        </div>
-      </div>
     </div>
   );
 }

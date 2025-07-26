@@ -376,7 +376,7 @@ export default function ProblemDetails({ problem }) {
       <div className="border-t pt-6 mt-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
           <div className="flex items-center text-gray-500">
-            <svg
+            {/* <svg
               className="w-4 h-4 mr-2"
               fill="none"
               stroke="currentColor"
@@ -388,15 +388,15 @@ export default function ProblemDetails({ problem }) {
                 strokeWidth={2}
                 d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
               />
-            </svg>
-            <span className="font-medium">Acceptance Rate:</span>
+            </svg> */}
+            {/* <span className="font-medium">Acceptance Rate:</span>
             <span className="ml-2 text-gray-700 font-medium">
               {problem.acceptanceRate || "N/A"}
-            </span>
+            </span> */}
           </div>
 
           <div className="flex items-center text-gray-500">
-            <svg
+            {/* <svg
               className="w-4 h-4 mr-2"
               fill="none"
               stroke="currentColor"
@@ -408,15 +408,15 @@ export default function ProblemDetails({ problem }) {
                 strokeWidth={2}
                 d="M7 4v16l4-4 4 4V4z"
               />
-            </svg>
-            <span className="font-medium">Total Submissions:</span>
-            <span className="ml-2 text-gray-700 font-medium">
+            </svg> */}
+            {/* <span className="font-medium">Total Submissions:</span> */}
+            {/* <span className="ml-2 text-gray-700 font-medium">
               {problem.totalSubmissions || "N/A"}
-            </span>
+            </span> */}
           </div>
 
           <div className="flex items-center text-gray-500">
-            <svg
+            {/* <svg
               className="w-4 h-4 mr-2"
               fill="none"
               stroke="currentColor"
@@ -428,8 +428,8 @@ export default function ProblemDetails({ problem }) {
                 strokeWidth={2}
                 d="M13 10V3L4 14h7v7l9-11h-7z"
               />
-            </svg>
-            <span className="font-medium">Difficulty:</span>
+            </svg> */}
+            {/* <span className="font-medium">Difficulty:</span>
             <span
               className={`ml-2 font-medium capitalize ${
                 problem.difficulty === "easy"
@@ -440,7 +440,7 @@ export default function ProblemDetails({ problem }) {
               }`}
             >
               {problem.difficulty || "N/A"}
-            </span>
+            </span> */}
           </div>
         </div>
       </div>
