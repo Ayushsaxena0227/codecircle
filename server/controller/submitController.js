@@ -423,6 +423,7 @@ exports.getSubmissions = async (req, res) => {
   try {
     const userId = req.user.uid;
     const problemId = req.params.problemId;
+
     const col = db.collection("users").doc(userId).collection("submissions");
 
     const snap = problemId
@@ -430,9 +431,17 @@ exports.getSubmissions = async (req, res) => {
           .where("problemId", "==", problemId)
           .orderBy("timestamp", "desc")
           .get()
-      : await col.orderBy("timestamp", "desc").get(); // all problems
+      : await col.orderBy("timestamp", "desc").get();
 
-    const submissions = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const submissions = snap.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        timestamp: data.timestamp.toMillis(),
+      };
+    });
+
     return res.json({ submissions });
   } catch (err) {
     console.error("Get submissions error:", err.message);
@@ -592,15 +601,21 @@ exports.saveSubmission = async (req, res) => {
     const finalVerdict = hasErrors ? "Error" : verdict;
 
     // Save submission to user's collection
-    await db.collection("users").doc(userId).collection("submissions").add({
-      problemId,
-      problemTitle: title,
-      code,
-      language,
-      verdict: finalVerdict,
-      testCaseResults,
-      timestamp: new Date(),
-    });
+
+    await db
+      .collection("users")
+      .doc(userId)
+      .collection("submissions")
+      .add({
+        problemId,
+        problemTitle: title,
+        problemDifficulty: (problem.difficulty || "").toLowerCase(),
+        code,
+        language,
+        verdict: finalVerdict,
+        testCaseResults,
+        timestamp: new Date(),
+      });
 
     return res.status(200).json({
       success: true,

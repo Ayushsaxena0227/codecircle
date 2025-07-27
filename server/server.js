@@ -16,7 +16,6 @@ app.use("/api/user", userRoutes);
 app.use("/api/problems", problemRoutes);
 app.use("/api/execute", executeRoute);
 app.use("/api/submit", submissionRoute);
-app.use("/api/submissions", submissionRoute);
 
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => {

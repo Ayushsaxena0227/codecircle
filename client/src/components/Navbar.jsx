@@ -1,33 +1,71 @@
+import React from "react";
+import { NavLink, useNavigate } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../Firebase/firebase";
+import { useTheme } from "../Context/ThemeContext";
 import { useAuth } from "../Context/Authcontext";
-import React from "react";
-import { Link } from "react-router-dom";
 
 export default function Navbar() {
+  const { theme, toggleTheme } = useTheme();
   const { user } = useAuth();
+  const navigate = useNavigate();
+
+  const linkClass = ({ isActive }) =>
+    `px-3 py-2 rounded hover:bg-gray-100 ${
+      isActive ? "font-semibold text-blue-600" : "text-gray-600"
+    }`;
 
   return (
-    <div className="flex justify-between p-4 bg-gray-800 text-white">
-      <Link to="/">Home</Link>
-      <div className="space-x-4">
+    <header className="bg-white border-b dark:bg-gray-900 dark:border-gray-700">
+      <div className="max-w-6xl mx-auto px-4 flex items-center h-14">
+        <NavLink
+          to="/"
+          className="font-extrabold text-lg text-blue-600 dark:text-blue-400"
+        >
+          CodeCircle
+        </NavLink>
+
+        <nav className="ml-6 space-x-2 flex">
+          <NavLink to="/" className={linkClass}>
+            Home
+          </NavLink>
+
+          {user && (
+            <>
+              <NavLink to="/problems" className={linkClass}>
+                Problems
+              </NavLink>
+              <NavLink to="/dashboard" className={linkClass}>
+                Dashboard
+              </NavLink>
+            </>
+          )}
+        </nav>
+
+        <button
+          onClick={toggleTheme}
+          className="ml-auto mr-2 text-xl focus:outline-none cursor-pointer"
+          title="Toggle theme"
+        >
+          {theme === "light" ? "🌙" : "☀️"}
+        </button>
+
         {user ? (
-          <>
-            <span>{user.email}</span>
-            <button
-              onClick={() => signOut(auth)}
-              className="bg-red-500 px-2 py-1 rounded"
-            >
-              Logout
-            </button>
-          </>
+          <button
+            onClick={() => signOut(auth)}
+            className="px-3 py-1 text-sm bg-red-500 hover:bg-red-600 text-white rounded cursor-pointer"
+          >
+            Logout
+          </button>
         ) : (
-          <>
-            <Link to="/login">Login</Link>
-            <Link to="/signup">Signup</Link>
-          </>
+          <button
+            onClick={() => navigate("/login")}
+            className="px-3 py-1 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded"
+          >
+            Login
+          </button>
         )}
       </div>
-    </div>
+    </header>
   );
 }

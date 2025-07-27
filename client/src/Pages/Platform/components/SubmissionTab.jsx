@@ -16,7 +16,7 @@ export default function SubmissionsTab({ problemId }) {
       setLoad(true);
       try {
         const token = await auth.currentUser.getIdToken();
-        const res = await fetch(`${BASE_URL}/submissions/${problemId}`, {
+        const res = await fetch(`${BASE_URL}/submit/${problemId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -62,7 +62,7 @@ export default function SubmissionsTab({ problemId }) {
               <tr key={s.id} className="border-b hover:bg-gray-50">
                 <td className="py-2 pr-4">{idx + 1}</td>
                 <td className="py-2 pr-4">
-                  {new Date(s.timestamp.toDate()).toLocaleString()}
+                  {new Date(s.timestamp).toLocaleString()}
                 </td>
                 <td className="py-2 pr-4">{s.language}</td>
                 <td className="py-2 pr-4">

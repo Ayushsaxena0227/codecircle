@@ -8,6 +8,7 @@ import ActionButtons from "../components/ActionsButton";
 import { getBoilerplate } from "../Constants/languageBoilerplate";
 import toast, { Toaster } from "react-hot-toast";
 import "@fontsource/lexend";
+import SubmissionsTab from "../components/SubmissionTab";
 
 const BASE_URL = import.meta.env.VITE_URL;
 
@@ -226,9 +227,7 @@ export default function ProblemsPage() {
                     <ProblemDetails problem={selectedProblem} />
                   )}
                   {activeTab === "submissions" && (
-                    <div className="p-6 text-center text-gray-400">
-                      No submissions yet
-                    </div>
+                    <SubmissionsTab problemId={selectedProblem.id} />
                   )}
                   {activeTab === "editorial" && (
                     <div className="p-6 text-center text-gray-400">

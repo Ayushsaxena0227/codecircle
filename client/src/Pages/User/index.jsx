@@ -1,37 +1,96 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { auth } from "../../Firebase/firebase";
+import toast from "react-hot-toast";
+import { Doughnut } from "react-chartjs-2";
+import { Chart, ArcElement, Tooltip, Legend } from "chart.js";
+Chart.register(ArcElement, Tooltip, Legend);
 
-const Profile = () => {
-  const [data, setData] = useState(null);
-  const BASE_URL = import.meta.env.VITE_URL;
+const BASE_URL = import.meta.env.VITE_URL;
+
+export default function DashboardPage() {
+  const [info, setInfo] = useState(null);
+  const [loading, setLoad] = useState(true);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      const token = await auth.currentUser?.getIdToken();
-      const res = await fetch(`${BASE_URL}/api/user/profile`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const json = await res.json();
-      setData(json);
-    };
-
-    fetchProfile();
+    (async () => {
+      try {
+        const token = await auth.currentUser.getIdToken();
+        const res = await fetch(`${BASE_URL}/user/overview`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const json = await res.json();
+        if (json.error) throw new Error(json.error);
+        // console.log(json);
+        setInfo(json);
+      } catch (e) {
+        toast.error(e.message);
+      } finally {
+        setLoad(false);
+      }
+    })();
   }, []);
 
+  if (loading)
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+
+  if (!info) return null;
+
+  const { profile, stats } = info;
+  const chartData = {
+    labels: ["Easy", "Medium", "Hard"],
+    datasets: [
+      {
+        data: [
+          stats.solvedByDifficulty.easy,
+          stats.solvedByDifficulty.medium,
+          stats.solvedByDifficulty.hard,
+        ],
+        backgroundColor: ["#34d399", "#fbbf24", "#f87171"],
+      },
+    ],
+  };
+
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-bold">User Profile</h1>
-      {data ? (
-        <pre className="bg-gray-100 p-4 rounded">
-          {JSON.stringify(data, null, 2)}
-        </pre>
-      ) : (
-        "Loading..."
-      )}
+    <div className="max-w-5xl mx-auto px-4 py-8">
+      <h2 className="text-2xl font-semibold mb-6">Dashboard</h2>
+
+      {/* profile card */}
+      <div className="bg-white shadow rounded p-6 mb-6">
+        <h3 className="text-lg font-medium mb-2">Profile</h3>
+        <p>
+          <span className="font-medium">Email:</span> {profile.email}
+        </p>
+        <p>
+          <span className="font-medium">Joined:</span>{" "}
+          {new Date(profile.createdAt).toLocaleDateString()}
+        </p>
+      </div>
+
+      {/* stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+        <Stat label="Total Submissions" value={stats.submissions} />
+        <Stat label="Accepted" value={stats.accepted} />
+        <Stat label="Problems Solved" value={stats.problemsSolved} />
+      </div>
+
+      {/* donut */}
+      <div className="max-w-sm mx-auto">
+        <Doughnut data={chartData} />
+        <p className="text-center mt-3 text-sm text-gray-500">
+          Solved by Difficulty
+        </p>
+      </div>
     </div>
   );
-};
+}
 
-export default Profile;
+const Stat = ({ label, value }) => (
+  <div className="bg-white shadow rounded p-6 text-center">
+    <p className="text-3xl font-bold text-blue-600">{value}</p>
+    <p className="mt-1 text-gray-500 text-sm">{label}</p>
+  </div>
+);

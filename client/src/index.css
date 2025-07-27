@@ -2,3 +2,7 @@
 body {
   font-family: "Lexend";
 }
+
+body {
+  @apply bg-gray-50 text-gray-800 dark:bg-gray-900 dark:text-gray-600;
+}

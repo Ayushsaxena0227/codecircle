@@ -1,72 +1,96 @@
-import { useState } from "react";
-import { auth } from "../../../Firebase/firebase";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
   GoogleAuthProvider,
 } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import { auth } from "../../../Firebase/firebase";
 import { createUserInDB } from "../../../utils/createUserInDb";
-import React from "react";
+
+const googleProvider = new GoogleAuthProvider();
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const googleProvider = new GoogleAuthProvider();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const doLogin = async (credPromise) => {
+    setLoading(true);
     try {
-      const userCred = await signInWithEmailAndPassword(auth, email, password);
-      const token = await userCred.user.getIdToken();
+      const { user } = await credPromise;
+      const token = await user.getIdToken();
       await createUserInDB(token);
-      navigate("/");
-    } catch (err) {
-      alert(err.message);
+      toast.success("Logged-in successfully!");
+      navigate("/problems");
+    } catch (e) {
+      toast.error(e.message || "Login failed");
+      setLoading(false);
     }
   };
 
-  const handleGoogleLogin = async () => {
-    try {
-      const userCred = await signInWithPopup(auth, googleProvider);
-      const token = await userCred.user.getIdToken();
-      await createUserInDB(token);
-      navigate("/");
-    } catch (err) {
-      alert(err.message);
-    }
-  };
+  if (loading) return <LoginSkeleton />;
 
   return (
-    <form onSubmit={handleLogin} className="p-4 max-w-sm mx-auto space-y-4">
-      <h2 className="text-xl font-bold">Login</h2>
-      <input
-        type="email"
-        placeholder="Email"
-        className="border w-full p-2"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        required
-      />
-      <input
-        type="password"
-        placeholder="Password"
-        className="border w-full p-2"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-      />
-      <button className="bg-blue-600 text-white px-4 py-2 rounded w-full">
-        Login
-      </button>
-      <button
-        type="button"
-        onClick={handleGoogleLogin}
-        className="bg-red-500 text-white px-4 py-2 rounded w-full"
+    <div className="min-h-[calc(100vh-56px)] flex items-center justify-center">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          doLogin(signInWithEmailAndPassword(auth, email, password));
+        }}
+        className="bg-white dark:bg-gray-800 shadow rounded p-6 w-full max-w-sm space-y-4"
       >
-        Login with Google
-      </button>
-    </form>
+        <h2 className="text-xl font-bold text-center text-gray-700 dark:text-gray-200">
+          Login
+        </h2>
+
+        <input
+          type="email"
+          placeholder="Email"
+          className="border w-full p-2 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+
+        <input
+          type="password"
+          placeholder="Password"
+          className="border w-full p-2 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
+
+        <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">
+          Login
+        </button>
+
+        <button
+          type="button"
+          onClick={() => doLogin(signInWithPopup(auth, googleProvider))}
+          className="w-full bg-red-500 hover:bg-red-600 text-white py-2 rounded"
+        >
+          Login with Google
+        </button>
+      </form>
+    </div>
+  );
+}
+
+/* ---------- skeleton -------------- */
+function LoginSkeleton() {
+  return (
+    <div className="min-h-[calc(100vh-56px)] flex items-center justify-center">
+      <div className="bg-white dark:bg-gray-800 shadow rounded p-6 w-full max-w-sm animate-pulse space-y-4">
+        <div className="h-6 w-24 mx-auto bg-gray-300 dark:bg-gray-700 rounded" />
+        <div className="h-10 bg-gray-300 dark:bg-gray-700 rounded" />
+        <div className="h-10 bg-gray-300 dark:bg-gray-700 rounded" />
+        <div className="h-10 bg-gray-300 dark:bg-gray-700 rounded" />
+        <div className="h-10 bg-gray-300 dark:bg-gray-700 rounded" />
+      </div>
+    </div>
   );
 }

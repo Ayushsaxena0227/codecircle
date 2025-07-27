@@ -5,7 +5,7 @@ const authenticateUser = require("../middleware/authMiddleware");
 
 router.post("/", authenticateUser, submissionController.saveSubmission);
 router.get(
-  "/:problemId?",
+  "/:problemId",
   authenticateUser,
   submissionController.getSubmissions
 );
