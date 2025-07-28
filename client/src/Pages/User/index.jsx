@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../../Firebase/firebase";
 import toast from "react-hot-toast";
 import { Doughnut } from "react-chartjs-2";
@@ -9,25 +10,30 @@ const BASE_URL = import.meta.env.VITE_URL;
 
 export default function DashboardPage() {
   const [info, setInfo] = useState(null);
-  const [loading, setLoad] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    (async () => {
+    const unsub = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        toast.error("Please log in to view the dashboard.");
+        setLoading(false);
+        return;
+      }
       try {
-        const token = await auth.currentUser.getIdToken();
+        const token = await user.getIdToken();
         const res = await fetch(`${BASE_URL}/user/overview`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const json = await res.json();
         if (json.error) throw new Error(json.error);
-        // console.log(json);
         setInfo(json);
       } catch (e) {
-        toast.error(e.message);
+        toast.error(e.message || "Failed to load dashboard");
       } finally {
-        setLoad(false);
+        setLoading(false);
       }
-    })();
+    });
+    return () => unsub();
   }, []);
 
   if (loading)
@@ -38,7 +44,6 @@ export default function DashboardPage() {
     );
 
   if (!info) return null;
-
   const { profile, stats } = info;
   const chartData = {
     labels: ["Easy", "Medium", "Hard"],

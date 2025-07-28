@@ -4,6 +4,7 @@ import { signOut } from "firebase/auth";
 import { auth } from "../Firebase/firebase";
 import { useTheme } from "../Context/ThemeContext";
 import { useAuth } from "../Context/Authcontext";
+import { FaStar } from "react-icons/fa";
 
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
@@ -37,6 +38,21 @@ export default function Navbar() {
               </NavLink>
               <NavLink to="/dashboard" className={linkClass}>
                 Dashboard
+              </NavLink>
+            </>
+          )}
+          {user && (
+            <>
+              <NavLink
+                to="/favorites"
+                title="Favourites"
+                className={({ isActive }) =>
+                  `p-2 rounded hover:bg-gray-100 mt-1 ${
+                    isActive ? "text-yellow-500" : "text-gray-600"
+                  }`
+                }
+              >
+                <FaStar />
               </NavLink>
             </>
           )}

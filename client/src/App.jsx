@@ -8,6 +8,7 @@ import ProtectedRoute from "./components/ProtectedRoutes";
 import ProblemList from "./Pages/Platform/Problems";
 import HomePage from "./Pages/Other/Home";
 import DashboardPage from "./Pages/User";
+import FavoritesPage from "./Pages/Other/Favourite";
 function App() {
   return (
     <>
@@ -26,6 +27,22 @@ function App() {
         />
         <Route
           path="/problems"
+          element={
+            <ProtectedRoute>
+              <ProblemList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/favorites"
+          element={
+            <ProtectedRoute>
+              <FavoritesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/problems/:problemid"
           element={
             <ProtectedRoute>
               <ProblemList />

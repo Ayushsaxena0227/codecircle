@@ -6,6 +6,7 @@ const userRoutes = require("./routes/userRoutes");
 const problemRoutes = require("./routes/problemRoutes");
 const executeRoute = require("./routes/execute");
 const submissionRoute = require("./routes/submissionRoutes");
+const favoriteRoutes = require("./routes/favouriteRoute");
 
 const app = express();
 app.use(cors());
@@ -16,6 +17,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/problems", problemRoutes);
 app.use("/api/execute", executeRoute);
 app.use("/api/submit", submissionRoute);
+app.use("/api/favorites", favoriteRoutes);
 
 const PORT = process.env.PORT || 5002;
 app.listen(PORT, () => {
