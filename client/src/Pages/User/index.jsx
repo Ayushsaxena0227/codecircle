@@ -11,13 +11,17 @@ const BASE_URL = import.meta.env.VITE_URL;
 export default function DashboardPage() {
   const [info, setInfo] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [checkedonce, Setcheckedonce] = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        toast.error("Please log in to view the dashboard.");
+        if (checkedonce) {
+          toast.error("Please log in to view the dashboard.");
+        }
         setLoading(false);
-        return;
+        Setcheckedonce(true);
+        return navigate("/login");
       }
       try {
         const token = await user.getIdToken();
