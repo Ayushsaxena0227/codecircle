@@ -2,23 +2,36 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { FaGithub } from "react-icons/fa";
 import { HiLightningBolt, HiChartBar, HiUsers } from "react-icons/hi";
+import axios from "axios";
 
 export default function HomePage() {
-  /* fake API numbers (replace with real fetch later) */
   const [stats, setStats] = useState({
-    problems: 320,
-    submissions: 14892,
-    users: 1054,
+    problems: 0,
+    submissions: 0,
+    users: 0,
   });
+  const [loading, setLoading] = useState(true);
+  const BASE_URL = import.meta.env.VITE_URL;
 
-  /* optional: fetch real stats once */
-  // useEffect(() => {
-  //   fetch("/api/public/stats").then(r => r.json()).then(setStats);
-  // }, []);
+  useEffect(() => {
+    axios
+      .get(`${BASE_URL}/public/stats`)
+      .then((res) => setStats(res.data))
+      .catch(() => {
+        /* silent fail – keep zeros */
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const MiniSpinner = () => (
+    <span
+      className="inline-block w-3 h-3 border-2 border-blue-500 
+                   border-t-transparent rounded-full animate-spin"
+    />
+  );
 
   return (
     <div className="font-lexend">
-      {/* ---------------- HERO ---------------- */}
       <section className="max-w-6xl mx-auto px-4 py-20 text-center">
         <h1 className="text-4xl sm:text-5xl font-extrabold mb-4">
           Practice. Compete. Get better.
@@ -36,28 +49,26 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* ---------------- LIVE STATS ---------------- */}
       <section className="bg-blue-50 dark:bg-blue-900 py-8">
         <div className="max-w-4xl mx-auto flex justify-around text-center">
           <StatBox
             icon={<HiLightningBolt className="w-6 h-6" />}
             label="Problems"
-            value={stats.problems}
+            value={loading ? <MiniSpinner /> : stats.problems}
           />
           <StatBox
             icon={<HiUsers className="w-6 h-6" />}
             label="Developers"
-            value={stats.users}
+            value={loading ? <MiniSpinner /> : stats.users}
           />
           <StatBox
             icon={<HiChartBar className="w-6 h-6" />}
             label="Submissions"
-            value={stats.submissions}
+            value={loading ? <MiniSpinner /> : stats.submissions}
           />
         </div>
       </section>
 
-      {/* ---------------- FEATURES GRID ---------------- */}
       <section className="max-w-5xl mx-auto px-4 py-16 grid gap-10 md:grid-cols-3">
         {[
           {
@@ -83,13 +94,14 @@ export default function HomePage() {
         ))}
       </section>
 
-      {/* ---------------- SCREENSHOT / GIF ---------------- */}
       <section className="max-w-6xl mx-auto px-4 py-10 text-center">
-        {/* Replace src with a real editor screenshot or animated GIF */}
-        <img
-          src="https://placehold.co/900x450?text=Editor+Screenshot"
-          alt="Editor screenshot"
-          className="rounded shadow border mx-auto"
+        <video
+          src="/homepage.mp4"
+          className="rounded shadow border mx-auto w-full max-w-[900px]"
+          autoPlay
+          muted
+          loop
+          playsInline /* iOS inline playback */
         />
       </section>
 

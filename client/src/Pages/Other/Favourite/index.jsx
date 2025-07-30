@@ -10,25 +10,27 @@ export default function FavoritesPage() {
   const [favProblems, setFavProblems] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [checkedonce, Setcheckedonce] = useState(false);
 
   /* fetch after Firebase restores session */
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        toast.error("Please log in to view favourites.");
+        if (checkedonce) {
+          toast.error("Please log in to view the dashboard.");
+        }
         setLoading(false);
-        return;
+        Setcheckedonce(true);
+        return navigate("/login");
       }
       try {
         const token = await user.getIdToken();
 
-        /* 1️⃣ favourite IDs */
         const favRes = await fetch(`${BASE_URL}/favorites`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const { favorites } = await favRes.json();
 
-        /* 2️⃣ full problem list then filter */
         if (favorites.length) {
           const probRes = await fetch(`${BASE_URL}/problems`, {
             headers: { Authorization: `Bearer ${token}` },

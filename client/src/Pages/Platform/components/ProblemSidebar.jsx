@@ -1,13 +1,19 @@
 import React, { useEffect, useState } from "react";
-import { FaRegStar, FaStar } from "react-icons/fa";
+import { FaRegStar, FaStar, FaCheck } from "react-icons/fa";
 import { auth } from "../../../Firebase/firebase";
 import toast from "react-hot-toast";
 
 const BASE_URL = import.meta.env.VITE_URL;
 
-export default function ProblemSidebar({ problems, selectedId, onSelect }) {
+export default function ProblemSidebar({
+  problems,
+  selectedId,
+  onSelect,
+  solved = new Set(),
+}) {
   const [favs, setFavs] = useState([]); // array of problemIds
   const [loadingFavs, setLoadingFavs] = useState(true);
+  console.log(solved);
 
   useEffect(() => {
     (async () => {
@@ -21,6 +27,7 @@ export default function ProblemSidebar({ problems, selectedId, onSelect }) {
         const { favorites } = await res.json();
         setFavs(favorites);
       } catch {
+        // silent fail
       } finally {
         setLoadingFavs(false);
       }
@@ -92,11 +99,12 @@ export default function ProblemSidebar({ problems, selectedId, onSelect }) {
       <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
         {problems.map((problem, idx) => {
           const isFav = favs.includes(problem.id);
+          const isSolved = solved.has(problem.id);
           return (
             <div
               key={problem.id}
               onClick={() => onSelect(problem)}
-              className={`p-4 cursor-pointer hover:bg-gray-50 ${
+              className={`p-4 cursor-pointer hover:bg-gray-50 transition ${
                 selectedId === problem.id
                   ? "bg-blue-50 border-r-2 border-blue-500"
                   : ""
@@ -143,18 +151,23 @@ export default function ProblemSidebar({ problems, selectedId, onSelect }) {
                   </div>
                 </div>
 
-                {/* right: star */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation(); // don't trigger onSelect
-                    toggleFav(problem.id);
-                  }}
-                  disabled={loadingFavs}
-                  className="text-yellow-500 hover:scale-110 transition cursor-pointer"
-                  title={isFav ? "Remove from favourites" : "Add to favourites"}
-                >
-                  {isFav ? <FaStar /> : <FaRegStar />}
-                </button>
+                {/* right: star + check */}
+                <div className="ml-2 flex items-center space-x-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFav(problem.id);
+                    }}
+                    disabled={loadingFavs}
+                    className="text-yellow-500 hover:scale-110 transition cursor-pointer"
+                    title={
+                      isFav ? "Remove from favourites" : "Add to favourites"
+                    }
+                  >
+                    {isFav ? <FaStar /> : <FaRegStar />}
+                  </button>
+                  {isSolved && <FaCheck className="text-green-500 w-3 h-3" />}
+                </div>
               </div>
             </div>
           );

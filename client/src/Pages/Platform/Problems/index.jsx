@@ -22,10 +22,8 @@ export default function ProblemsPage() {
   const [error, setError] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [solved, setSolved] = useState(new Set());
 
-  /* ------------------------------------------------------------------ */
-  /* fetch problems after login                                         */
-  /* ------------------------------------------------------------------ */
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (user) => {
       setLoading(true);
@@ -56,9 +54,6 @@ export default function ProblemsPage() {
     return () => unsub();
   }, []);
 
-  /* ------------------------------------------------------------------ */
-  /* load boiler-plate when problem/language changes                    */
-  /* ------------------------------------------------------------------ */
   useEffect(() => {
     if (selectedProblem) {
       const boiler = getBoilerplate(
@@ -69,9 +64,6 @@ export default function ProblemsPage() {
     }
   }, [selectedProblem, language]);
 
-  /* ------------------------------------------------------------------ */
-  /* RUN                                                                */
-  /* ------------------------------------------------------------------ */
   const handleRunCode = async () => {
     if (isRunning || isSubmitting || !selectedProblem) return;
     setIsRunning(true);
@@ -113,9 +105,6 @@ export default function ProblemsPage() {
     }
   };
 
-  /* ------------------------------------------------------------------ */
-  /* SUBMIT                                                             */
-  /* ------------------------------------------------------------------ */
   const handleSubmitCode = async () => {
     if (isRunning || isSubmitting || !selectedProblem) return;
     setIsSubmitting(true);
@@ -147,6 +136,7 @@ export default function ProblemsPage() {
         const total = result.testCaseResults.length;
         if (result.verdict === "Accepted") {
           toast.success(`Accepted! All ${total} tests`);
+          setSolved((prev) => new Set(prev).add(selectedProblem.id));
         } else {
           toast.error(`${result.verdict}. Passed ${passed}/${total}`);
         }
@@ -160,9 +150,20 @@ export default function ProblemsPage() {
     }
   };
 
-  /* ------------------------------------------------------------------ */
-  /* loading / error states                                             */
-  /* ------------------------------------------------------------------ */
+  useEffect(() => {
+    const fetchSolved = async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      const token = await user.getIdToken();
+      const res = await fetch(`${BASE_URL}/user/solved`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const { solvedProblems } = await res.json();
+      setSolved(new Set(solvedProblems));
+    };
+    fetchSolved();
+  }, [loading]);
+
   if (loading)
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
@@ -181,18 +182,16 @@ export default function ProblemsPage() {
     <>
       <Toaster position="top-right" />
       <div className="flex h-screen bg-gray-50 font-lexend">
-        {/* Sidebar */}
         <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
           <ProblemSidebar
             problems={problems}
             selectedId={selectedProblem?.id}
             onSelect={setSelectedProblem}
+            solved={solved}
           />
         </div>
 
-        {/* Main 2-panel area */}
         <div className="flex-1 flex">
-          {/* --------------- DESCRIPTION PANEL --------------- */}
           <div className="w-1/2 bg-white border-r border-gray-200 flex flex-col">
             {selectedProblem ? (
               <>

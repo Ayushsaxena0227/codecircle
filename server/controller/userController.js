@@ -82,3 +82,22 @@ exports.getOverview = async (req, res) => {
     res.status(500).json({ error: "Failed to build overview" });
   }
 };
+
+exports.getSolvedProblems = async (req, res) => {
+  const uid = req.user.uid;
+  try {
+    const snap = await db
+      .collection("users")
+      .doc(uid)
+      .collection("submissions")
+      .get();
+    const solved = [];
+    snap.forEach((doc) => {
+      const data = doc.data();
+      if (data.verdict === "Accepted") solved.push(data.problemId);
+    });
+    res.json({ solvedProblems: solved });
+  } catch (e) {
+    res.status(500).json({ solvedProblems: [] });
+  }
+};
