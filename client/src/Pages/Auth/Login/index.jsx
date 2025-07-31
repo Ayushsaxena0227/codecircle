@@ -8,6 +8,8 @@ import {
 import toast from "react-hot-toast";
 import { auth } from "../../../Firebase/firebase";
 import { createUserInDB } from "../../../utils/createUserInDb";
+import { BiSolidHide } from "react-icons/bi";
+import { HiEye } from "react-icons/hi";
 
 const googleProvider = new GoogleAuthProvider();
 
@@ -15,8 +17,12 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [show, setshow] = useState(false);
   const navigate = useNavigate();
 
+  const handletoggle = () => {
+    setshow((prev) => !prev);
+  };
   const doLogin = async (credPromise) => {
     setLoading(true);
     try {
@@ -55,14 +61,29 @@ export default function Login() {
           required
         />
 
-        <input
-          type="password"
-          placeholder="Password"
-          className="border w-full p-2 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
+        <div className="relative">
+          <input
+            type={show ? "text" : "password"}
+            placeholder="Password"
+            className="border w-full p-2 rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 pr-10"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          {show ? (
+            <BiSolidHide
+              onClick={handletoggle}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xl text-gray-500 cursor-pointer"
+              title="Hide password"
+            />
+          ) : (
+            <HiEye
+              onClick={handletoggle}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xl text-gray-500 cursor-pointer"
+              title="Show password"
+            />
+          )}
+        </div>
 
         <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">
           Login
@@ -75,7 +96,6 @@ export default function Login() {
         >
           Login with Google
         </button>
-        {/* existing buttons …*/}
 
         <p className="text-center text-sm text-gray-600 dark:text-gray-400">
           Don’t have an account?{" "}
@@ -91,7 +111,6 @@ export default function Login() {
   );
 }
 
-/* ---------- skeleton -------------- */
 function LoginSkeleton() {
   return (
     <div className="min-h-[calc(100vh-56px)] flex items-center justify-center">

@@ -58,7 +58,7 @@ export default function ProblemsPage() {
     if (selectedProblem) {
       const boiler = getBoilerplate(
         language,
-        selectedProblem.boilerplateFunctionName
+        selectedProblem.functionName // ✅ NEW
       );
       setCode(boiler);
     }
@@ -297,7 +297,7 @@ export default function ProblemsPage() {
                   <span>
                     Function:{" "}
                     <code className="bg-gray-200 px-1 rounded">
-                      {selectedProblem.boilerplateFunctionName}
+                      {selectedProblem.functionName}
                     </code>
                   </span>
                   <span>

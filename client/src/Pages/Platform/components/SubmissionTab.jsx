@@ -138,10 +138,14 @@ export default function SubmissionsTab({ problemId }) {
                       <tr key={i} className="border-b">
                         <td className="py-1 pr-2">{i + 1}</td>
                         <td className="py-1 pr-2 whitespace-pre-wrap">
-                          {t.input}
+                          {typeof t.input == "object"
+                            ? JSON.stringify(t.input)
+                            : t.input}
                         </td>
                         <td className="py-1 pr-2 whitespace-pre-wrap">
-                          {t.userOutput}
+                          {typeof t.userOutput == "object"
+                            ? JSON.stringify(t.userOutput)
+                            : t.userOutput}
                         </td>
                         <td className="py-1">{t.passed ? "✅" : "❌"}</td>
                       </tr>

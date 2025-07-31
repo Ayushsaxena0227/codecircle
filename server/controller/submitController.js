@@ -1,8 +1,11 @@
+// controllers/submissionController.js
 const { db } = require("../firebase/config");
 const axios = require("axios");
+const EnhancedCodeGenerator = require("../utils/enhancedCodeGenerator");
+const TypeSystem = require("../utils/typeSystem");
 
 // Language ID mapping for Judge0
-function getLanguageId(language) {
+const getLanguageId = (language) => {
   const map = {
     cpp: 54,
     python: 71,
@@ -11,414 +14,340 @@ function getLanguageId(language) {
     c: 50,
   };
   return map[language] || 54;
-}
-
-// Base64 encode function
-function base64Encode(str) {
-  return Buffer.from(str, "utf8").toString("base64");
-}
-
-// Base64 decode function
-function base64Decode(str) {
-  return Buffer.from(str, "base64").toString("utf8");
-}
-
-// Generate test wrapper code for different languages
-const generateTestCode = (userCode, language, problem, testCase) => {
-  const { boilerplateFunctionName: functionName } = problem;
-  const input = testCase.input;
-
-  if (language === "cpp") {
-    return generateCppTestCode(userCode, functionName, input);
-  } else if (language === "python") {
-    return generatePythonTestCode(userCode, functionName, input);
-  } else if (language === "javascript") {
-    return generateJavaScriptTestCode(userCode, functionName, input);
-  }
-
-  return userCode; // fallback
 };
 
-// Updated C++ code generation functions for your submission handler
+// Base64 encode/decode functions
+const base64Encode = (str) => Buffer.from(str, "utf8").toString("base64");
+const base64Decode = (str) => Buffer.from(str, "base64").toString("utf8");
 
-const generateCppTestCode = (userCode, functionName, input) => {
-  const lines = input.trim().split("\n");
+exports.saveSubmission = async (req, res) => {
+  const { problemId, code, language } = req.body;
+  const userId = req.user.uid;
 
-  if (functionName === "twoSum") {
-    const nums = lines[0]; // "[2,7,11,15]"
-    const target = lines[1]; // "9"
+  if (!problemId || !code || !language) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
 
-    return `#include <iostream>
-#include <vector>
-#include <sstream>
-#include <string>
-using namespace std;
+  try {
+    console.log("⏳ Fetching problem from Firestore...");
+    const problemRef = db.collection("problems").doc(problemId);
+    const problemDoc = await problemRef.get();
 
-${userCode}
-
-vector<int> parseArray(string str) {
-    vector<int> result;
-    if (str.empty() || str == "[]") return result;
-    
-    // Remove brackets
-    str = str.substr(1, str.length() - 2);
-    
-    if (str.empty()) return result;
-    
-    stringstream ss(str);
-    string item;
-    while (getline(ss, item, ',')) {
-        result.push_back(stoi(item));
+    if (!problemDoc.exists) {
+      console.error("❌ Problem not found");
+      return res.status(404).json({ error: "Problem not found" });
     }
-    return result;
+
+    const problem = problemDoc.data();
+    const { testCases, title } = problem;
+
+    console.log("✅ Found problem. Starting test case evaluation...");
+
+    // Run all test cases
+    const testResults = await runTestCases(code, language, problem, testCases);
+
+    // Determine final verdict
+    const verdict = determineVerdict(testResults);
+
+    // Save submission to database
+    await saveSubmissionToDb(
+      userId,
+      problemId,
+      title,
+      problem,
+      code,
+      language,
+      verdict,
+      testResults
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `Submission ${verdict}`,
+      verdict,
+      testCaseResults: testResults,
+    });
+  } catch (err) {
+    console.error("🔥 Submission error:", err.message);
+    return res.status(500).json({
+      error: "Internal server error",
+      details: err.message,
+    });
+  }
+};
+
+// Run all test cases for a submission
+async function runTestCases(code, language, problem, testCases) {
+  const results = [];
+
+  for (let i = 0; i < testCases.length; i++) {
+    let testCase = testCases[i];
+
+    // 🔧 PARSE STRING INPUTS TO OBJECTS
+    if (typeof testCase.input === "string") {
+      try {
+        testCase.input = JSON.parse(testCase.input);
+      } catch (e) {
+        console.error("❌ Failed to parse input:", testCase.input);
+      }
+    }
+
+    if (typeof testCase.output === "string") {
+      try {
+        testCase.output = JSON.parse(testCase.output);
+      } catch (e) {
+        console.error("❌ Failed to parse output:", testCase.output);
+      }
+    }
+
+    console.log(`🔁 Running test case ${i + 1}:`, testCase.input);
+
+    try {
+      console.log("🔍 Problem structure:", {
+        functionName: problem.functionName,
+        parameters: problem.parameters,
+        returnType: problem.returnType,
+        title: problem.title,
+      });
+      console.log("🔍 Test case input:", testCase.input);
+      console.log("🔍 Language:", language);
+      const testCode = EnhancedCodeGenerator.generateTestCode(
+        code,
+        language,
+        problem,
+        testCase
+      );
+      const judgeResult = await submitToJudge0(testCode, language);
+      const result = processJudgeResult(judgeResult, testCase, problem);
+      results.push(result);
+    } catch (error) {
+      console.error(`❌ Error in test case ${i + 1}:`, error.message);
+      results.push({
+        input: testCase.input,
+        expectedOutput: testCase.output,
+        userOutput: `System Error: ${error.message}`,
+        passed: false,
+        error: true,
+        errorType: "System Error",
+        explanation: testCase.explanation,
+      });
+    }
+  }
+
+  return results;
 }
 
-int main() {
-    try {
-        vector<int> nums = parseArray("${nums}");
-        int target = ${target};
-        
-        Solution sol;
-        vector<int> result = sol.${functionName}(nums, target);
-        
-        cout << "[";
-        for (int i = 0; i < result.size(); i++) {
-            if (i > 0) cout << ",";
-            cout << result[i];
-        }
-        cout << "]";
-    } catch (const exception& e) {
-        cout << "Error: " << e.what();
-    }
-    
-    return 0;
-}`;
-  }
+// Run a single test case
+async function runSingleTestCase(code, language, problem, testCase) {
+  // Generate test wrapper code
+  const testCode = CodeGenerator.generateTestCode(
+    code,
+    language,
+    problem,
+    testCase
+  );
 
-  if (functionName === "isPalindrome") {
-    const s = lines[0].replace(/"/g, ""); // Remove quotes if present
+  // Submit to Judge0
+  const judgeResult = await submitToJudge0(testCode, language);
 
-    return `#include <iostream>
-#include <string>
-#include <cctype>
-using namespace std;
-
-${userCode}
-
-int main() {
-    try {
-        string s = "${s}";
-        
-        Solution sol;
-        bool result = sol.${functionName}(s);
-        
-        cout << (result ? "true" : "false");
-    } catch (const exception& e) {
-        cout << "Error: " << e.what();
-    }
-    
-    return 0;
-}`;
-  }
-
-  if (functionName === "reverseInteger") {
-    const x = lines[0];
-
-    return `#include <iostream>
-#include <climits>
-using namespace std;
-
-${userCode}
-
-int main() {
-    try {
-        int x = ${x};
-        
-        Solution sol;
-        int result = sol.${functionName}(x);
-        
-        cout << result;
-    } catch (const exception& e) {
-        cout << "Error: " << e.what();
-    }
-    
-    return 0;
-}`;
-  }
-
-  if (functionName === "factorial") {
-    const n = lines[0];
-
-    return `#include <iostream>
-using namespace std;
-
-${userCode}
-
-int main() {
-    try {
-        int n = ${n};
-        
-        Solution sol;
-        int result = sol.${functionName}(n);
-        
-        cout << result;
-    } catch (const exception& e) {
-        cout << "Error: " << e.what();
-    }
-    
-    return 0;
-}`;
-  }
-
-  if (functionName === "transpose") {
-    const matrix = lines[0]; // "[[1,2,3],[4,5,6]]"
-
-    return `#include <iostream>
-#include <vector>
-#include <sstream>
-#include <string>
-using namespace std;
-
-${userCode}
-
-vector<vector<int>> parseMatrix(string str) {
-    vector<vector<int>> result;
-    if (str.empty() || str == "[]") return result;
-    
-    // Remove outer brackets
-    str = str.substr(1, str.length() - 2);
-    
-    string row = "";
-    int bracketCount = 0;
-    
-    for (int i = 0; i < str.length(); i++) {
-        if (str[i] == '[') {
-            bracketCount++;
-            if (bracketCount == 1) continue;
-        } else if (str[i] == ']') {
-            bracketCount--;
-            if (bracketCount == 0) {
-                // Parse the row
-                vector<int> currentRow;
-                if (!row.empty()) {
-                    stringstream ss(row);
-                    string item;
-                    while (getline(ss, item, ',')) {
-                        currentRow.push_back(stoi(item));
-                    }
-                }
-                result.push_back(currentRow);
-                row = "";
-                continue;
-            }
-        }
-        
-        if (bracketCount > 0 && str[i] != '[' && str[i] != ']') {
-            row += str[i];
-        }
-    }
-    
-    return result;
+  // Process the result
+  return processJudgeResult(judgeResult, testCase, problem);
 }
 
-int main() {
-    try {
-        vector<vector<int>> matrix = parseMatrix("${matrix}");
-        
-        Solution sol;
-        vector<vector<int>> result = sol.${functionName}(matrix);
-        
-        cout << "[";
-        for (int i = 0; i < result.size(); i++) {
-            if (i > 0) cout << ",";
-            cout << "[";
-            for (int j = 0; j < result[i].size(); j++) {
-                if (j > 0) cout << ",";
-                cout << result[i][j];
-            }
-            cout << "]";
-        }
-        cout << "]";
-    } catch (const exception& e) {
-        cout << "Error: " << e.what();
+// Submit code to Judge0 API
+async function submitToJudge0(code, language) {
+  const encodedCode = base64Encode(code);
+
+  const response = await axios.post(
+    "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=true&wait=true",
+    {
+      source_code: encodedCode,
+      language_id: getLanguageId(language),
+      stdin: "",
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
+        "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
+        "X-RapidAPI-Key": process.env.JUDGE0_API_KEY,
+      },
+      timeout: 10000,
     }
-    
-    return 0;
-}`;
+  );
+
+  return response.data;
+}
+// Process Judge0 result and compare with expected output
+function processJudgeResult(judgeResult, testCase, problem) {
+  const stdout = judgeResult.stdout
+    ? base64Decode(judgeResult.stdout).trim()
+    : "";
+  const stderr = judgeResult.stderr
+    ? base64Decode(judgeResult.stderr).trim()
+    : "";
+  const compileOutput = judgeResult.compile_output
+    ? base64Decode(judgeResult.compile_output).trim()
+    : "";
+
+  // Handle errors
+  if (compileOutput) {
+    return {
+      input: testCase.input,
+      expectedOutput: testCase.output,
+      userOutput: `Compilation Error: ${compileOutput}`,
+      passed: false,
+      error: true,
+      errorType: "Compilation Error",
+      explanation: testCase.explanation,
+    };
   }
 
-  return userCode;
-};
-
-const generatePythonTestCode = (userCode, functionName, input) => {
-  const lines = input.trim().split("\n");
-
-  if (functionName === "twoSum") {
-    const nums = lines[0];
-    const target = lines[1];
-
-    return `${userCode}
-
-import json
-
-try:
-    nums = ${nums}
-    target = ${target}
-
-    sol = Solution()
-    result = sol.${functionName}(nums, target)
-    print(json.dumps(result))
-except Exception as e:
-    print(f"Error: {e}")`;
+  if (stderr) {
+    return {
+      input: testCase.input,
+      expectedOutput: testCase.output,
+      userOutput: `Runtime Error: ${stderr}`,
+      passed: false,
+      error: true,
+      errorType: "Runtime Error",
+      explanation: testCase.explanation,
+    };
   }
 
-  if (functionName === "isPalindrome") {
-    const s = lines[0].replace(/"/g, "");
-
-    return `${userCode}
-
-try:
-    s = "${s}"
-
-    sol = Solution()
-    result = sol.${functionName}(s)
-    print("true" if result else "false")
-except Exception as e:
-    print(f"Error: {e}")`;
+  if (judgeResult.status?.id !== 3) {
+    const statusDescription =
+      judgeResult.status?.description || "Unknown Error";
+    return {
+      input: testCase.input,
+      expectedOutput: testCase.output,
+      userOutput: `${statusDescription}${stdout ? `: ${stdout}` : ""}`,
+      passed: false,
+      error: true,
+      errorType: statusDescription,
+      explanation: testCase.explanation,
+    };
   }
 
-  if (functionName === "reverseInteger") {
-    const x = lines[0];
+  // ✅ NEW: Better output comparison
+  const userOutput = stdout;
+  const expectedOutput = testCase.output;
+  const passed = compareOutputs(userOutput, expectedOutput, problem.returnType);
 
-    return `${userCode}
+  return {
+    input: testCase.input,
+    expectedOutput: expectedOutput,
+    userOutput: userOutput,
+    passed,
+    explanation: testCase.explanation,
+  };
+}
 
-try:
-    x = ${x}
+// Normalize output for comparison
+function normalizeOutput(output, returnType) {
+  if (typeof output === "object") return output;
 
-    sol = Solution()
-    result = sol.${functionName}(x)
-    print(result)
-except Exception as e:
-    print(f"Error: {e}")`;
+  try {
+    return TypeSystem.deserializeOutput(output, returnType, "universal");
+  } catch (error) {
+    return output.toString().trim();
+  }
+}
+
+// Compare two outputs considering type and format differences
+function compareOutputs(userOutput, expectedOutput, returnType) {
+  // Try exact match first
+  if (userOutput === String(expectedOutput)) return true;
+
+  try {
+    // For arrays/objects, try JSON comparison
+    if (
+      returnType &&
+      (returnType.includes("vector") ||
+        returnType.includes("List") ||
+        returnType.includes("[]"))
+    ) {
+      const normalizedUser = JSON.parse(userOutput.replace(/'/g, '"'));
+      const normalizedExpected = expectedOutput;
+      return (
+        JSON.stringify(normalizedUser) === JSON.stringify(normalizedExpected)
+      );
+    }
+
+    // For numbers
+    if (
+      returnType &&
+      (returnType === "int" ||
+        returnType === "double" ||
+        returnType === "float")
+    ) {
+      return parseFloat(userOutput) === parseFloat(expectedOutput);
+    }
+
+    // For booleans
+    if (returnType && (returnType === "bool" || returnType === "boolean")) {
+      const userBool =
+        userOutput.toLowerCase() === "true" || userOutput === "1";
+      const expectedBool = expectedOutput === true || expectedOutput === "true";
+      return userBool === expectedBool;
+    }
+  } catch (error) {
+    // Fall back to string comparison
   }
 
-  if (functionName === "factorial") {
-    const n = lines[0];
+  return userOutput.trim() === String(expectedOutput).trim();
+}
+// Determine final verdict based on all test results
+function determineVerdict(testResults) {
+  const hasErrors = testResults.some((result) => result.error);
+  const allPassed = testResults.every((result) => result.passed);
 
-    return `${userCode}
+  if (hasErrors) {
+    const hasCompilationError = testResults.some(
+      (result) => result.errorType === "Compilation Error"
+    );
+    const hasRuntimeError = testResults.some(
+      (result) => result.errorType === "Runtime Error"
+    );
+    const hasTimeLimit = testResults.some(
+      (result) => result.errorType === "Time Limit Exceeded"
+    );
 
-try:
-    n = ${n}
-
-    sol = Solution()
-    result = sol.${functionName}(n)
-    print(result)
-except Exception as e:
-    print(f"Error: {e}")`;
+    if (hasCompilationError) return "Compilation Error";
+    if (hasRuntimeError) return "Runtime Error";
+    if (hasTimeLimit) return "Time Limit Exceeded";
+    return "Error";
   }
 
-  if (functionName === "transpose") {
-    const matrix = lines[0];
-
-    return `${userCode}
-
-import json
-
-try:
-    matrix = ${matrix}
-
-    sol = Solution()
-    result = sol.${functionName}(matrix)
-    print(json.dumps(result))
-except Exception as e:
-    print(f"Error: {e}")`;
-  }
-
-  return userCode;
-};
-
-const generateJavaScriptTestCode = (userCode, functionName, input) => {
-  const lines = input.trim().split("\n");
-
-  if (functionName === "twoSum") {
-    const nums = lines[0];
-    const target = lines[1];
-
-    return `${userCode}
-
-try {
-    const nums = ${nums};
-    const target = ${target};
-
-    const result = ${functionName}(nums, target);
-    console.log(JSON.stringify(result));
-} catch (error) {
-    console.log("Error: " + error.message);
-}`;
-  }
-
-  if (functionName === "isPalindrome") {
-    const s = lines[0].replace(/"/g, "");
-
-    return `${userCode}
-
-try {
-    const s = "${s}";
-
-    const result = ${functionName}(s);
-    console.log(result ? "true" : "false");
-} catch (error) {
-    console.log("Error: " + error.message);
-}`;
-  }
-
-  if (functionName === "reverseInteger") {
-    const x = lines[0];
-
-    return `${userCode}
-
-try {
-    const x = ${x};
-
-    const result = ${functionName}(x);
-    console.log(result);
-} catch (error) {
-    console.log("Error: " + error.message);
-}`;
-  }
-
-  if (functionName === "factorial") {
-    const n = lines[0];
-
-    return `${userCode}
-
-try {
-    const n = ${n};
-
-    const result = ${functionName}(n);
-    console.log(result);
-} catch (error) {
-    console.log("Error: " + error.message);
-}`;
-  }
-
-  if (functionName === "transpose") {
-    const matrix = lines[0];
-
-    return `${userCode}
-
-try {
-    const matrix = ${matrix};
-
-    const result = ${functionName}(matrix);
-    console.log(JSON.stringify(result));
-} catch (error) {
-    console.log("Error: " + error.message);
-}`;
-  }
-
-  return userCode;
-};
+  return allPassed ? "Accepted" : "Wrong Answer";
+}
+// Save submission to database
+async function saveSubmissionToDb(
+  userId,
+  problemId,
+  problemTitle,
+  problem,
+  code,
+  language,
+  verdict,
+  testResults
+) {
+  await db
+    .collection("users")
+    .doc(userId)
+    .collection("submissions")
+    .add({
+      problemId,
+      problemTitle,
+      problemDifficulty: (problem.difficulty || "").toLowerCase(),
+      code,
+      language,
+      verdict,
+      testCaseResults: testResults,
+      timestamp: new Date(),
+      passedTests: testResults.filter((r) => r.passed).length,
+      totalTests: testResults.length,
+    });
+}
 exports.getSubmissions = async (req, res) => {
   try {
     const userId = req.user.uid;
@@ -449,185 +378,13 @@ exports.getSubmissions = async (req, res) => {
   }
 };
 
-exports.saveSubmission = async (req, res) => {
-  const { problemId, code, language } = req.body;
-  const userId = req.user.uid;
+// // Helper functions for metadata
+// function calculateAverageTime(testResults) {
+//   // This would be implemented if Judge0 returns timing info
+//   return null;
+// }
 
-  if (!problemId || !code || !language) {
-    return res.status(400).json({ error: "Missing required fields" });
-  }
-
-  try {
-    console.log("⏳ Fetching problem from Firestore...");
-    const problemRef = db.collection("problems").doc(problemId);
-    const problemDoc = await problemRef.get();
-
-    if (!problemDoc.exists) {
-      console.error("❌ Problem not found");
-      return res.status(404).json({ error: "Problem not found" });
-    }
-
-    const problem = problemDoc.data();
-    const { testCases, title } = problem;
-    let allPassed = true;
-    const testCaseResults = [];
-
-    console.log("✅ Found problem. Starting test case evaluation...");
-
-    for (let i = 0; i < testCases.length; i++) {
-      const testCase = testCases[i];
-      console.log(`🔁 Running test case ${i + 1}:`, testCase.input);
-
-      try {
-        // Generate test code with proper wrapper
-        const testCode = generateTestCode(code, language, problem, testCase);
-
-        // Encode the source code in base64
-        const encodedCode = base64Encode(testCode);
-
-        const submissionRes = await axios.post(
-          "https://judge0-ce.p.rapidapi.com/submissions?base64_encoded=true&wait=true",
-          {
-            source_code: encodedCode,
-            language_id: getLanguageId(language),
-            stdin: "", // No stdin needed as we embed input in code
-          },
-          {
-            headers: {
-              "Content-Type": "application/json",
-              "X-RapidAPI-Host": "judge0-ce.p.rapidapi.com",
-              "X-RapidAPI-Key": process.env.JUDGE0_API_KEY,
-            },
-            timeout: 10000, // 10 second timeout
-          }
-        );
-
-        const judgeResult = submissionRes.data;
-
-        // Decode base64 responses
-        const stdout = judgeResult.stdout
-          ? base64Decode(judgeResult.stdout).trim()
-          : "";
-        const stderr = judgeResult.stderr
-          ? base64Decode(judgeResult.stderr).trim()
-          : "";
-        const compile_output = judgeResult.compile_output
-          ? base64Decode(judgeResult.compile_output).trim()
-          : "";
-
-        console.log(`📊 Test case ${i + 1} result:`, {
-          status: judgeResult.status?.description,
-          stdout: stdout.substring(0, 100) + (stdout.length > 100 ? "..." : ""),
-          stderr: stderr.substring(0, 100) + (stderr.length > 100 ? "..." : ""),
-        });
-
-        // Handle compilation errors
-        if (compile_output) {
-          testCaseResults.push({
-            input: testCase.input,
-            expectedOutput: testCase.output,
-            userOutput: `Compilation Error: ${compile_output}`,
-            passed: false,
-            error: true,
-            errorType: "Compilation Error",
-          });
-          allPassed = false;
-          continue;
-        }
-
-        // Handle runtime errors
-        if (stderr) {
-          testCaseResults.push({
-            input: testCase.input,
-            expectedOutput: testCase.output,
-            userOutput: `Runtime Error: ${stderr}`,
-            passed: false,
-            error: true,
-            errorType: "Runtime Error",
-          });
-          allPassed = false;
-          continue;
-        }
-
-        // Handle time limit exceeded or other status errors
-        if (judgeResult.status?.id !== 3) {
-          // 3 = Accepted
-          const statusDescription =
-            judgeResult.status?.description || "Unknown Error";
-          testCaseResults.push({
-            input: testCase.input,
-            expectedOutput: testCase.output,
-            userOutput: `${statusDescription}${stdout ? `: ${stdout}` : ""}`,
-            passed: false,
-            error: true,
-            errorType: statusDescription,
-          });
-          allPassed = false;
-          continue;
-        }
-
-        // Compare output
-        const userOutput = stdout;
-        const expectedOutput = testCase.output.trim();
-        const passed = userOutput === expectedOutput;
-
-        if (!passed) allPassed = false;
-
-        testCaseResults.push({
-          input: testCase.input,
-          expectedOutput: expectedOutput,
-          userOutput: userOutput,
-          passed,
-          explanation: testCase.explanation,
-        });
-      } catch (axiosError) {
-        console.error(`❌ Error in test case ${i + 1}:`, axiosError.message);
-        testCaseResults.push({
-          input: testCase.input,
-          expectedOutput: testCase.output,
-          userOutput: `System Error: ${axiosError.message}`,
-          passed: false,
-          error: true,
-          errorType: "System Error",
-        });
-        allPassed = false;
-      }
-    }
-
-    const verdict = allPassed ? "Accepted" : "Wrong Answer";
-
-    // Check if there were any compilation or runtime errors
-    const hasErrors = testCaseResults.some((result) => result.error);
-    const finalVerdict = hasErrors ? "Error" : verdict;
-
-    // Save submission to user's collection
-
-    await db
-      .collection("users")
-      .doc(userId)
-      .collection("submissions")
-      .add({
-        problemId,
-        problemTitle: title,
-        problemDifficulty: (problem.difficulty || "").toLowerCase(),
-        code,
-        language,
-        verdict: finalVerdict,
-        testCaseResults,
-        timestamp: new Date(),
-      });
-
-    return res.status(200).json({
-      success: true,
-      message: `Submission ${finalVerdict}`,
-      verdict: finalVerdict,
-      testCaseResults,
-    });
-  } catch (err) {
-    console.error("🔥 Submission error:", err.message);
-    return res.status(500).json({
-      error: "Internal server error",
-      details: err.message,
-    });
-  }
-};
+// function calculateAverageMemory(testResults) {
+//   // This would be implemented if Judge0 returns memory info
+//   return null;
+// }

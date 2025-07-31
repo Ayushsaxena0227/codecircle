@@ -13,7 +13,7 @@ export default function ProblemSidebar({
 }) {
   const [favs, setFavs] = useState([]); // array of problemIds
   const [loadingFavs, setLoadingFavs] = useState(true);
-  console.log(solved);
+  // console.log(solved);
 
   useEffect(() => {
     (async () => {
